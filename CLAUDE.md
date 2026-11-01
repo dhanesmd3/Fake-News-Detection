@@ -73,14 +73,14 @@ Centang `[x]` kalau selesai. Claude Code: perbarui checklist ini saat pemilik me
 - [x] Virtual environment, `requirements.txt`, `.gitignore`, struktur folder, `git init`
 
 ### M1: Pilih dataset + EDA
-- [ ] Pilih dataset. Kandidat: dataset hoaks berbahasa Indonesia dari Kaggle (cari "indonesian hoax" / "berita hoaks"), atau dataset Inggris seperti LIAR / ISOT.
-- [ ] Cek dan catat di README: jumlah data, distribusi label (seimbang atau tidak?), bahasa, kolom apa saja, sumber, lisensi
-- [ ] EDA: distribusi panjang teks per label, jumlah duplikat, kata yang paling sering per label
-- [ ] **Cari "jejak sumber"**: string yang muncul hampir hanya di satu label (nama media, "(Reuters)", tag "[HOAKS]", pola URL, format tanggal). Ini calon kebocoran (lihat M7).
+- [x] Pilih dataset. Kandidat: dataset hoaks berbahasa Indonesia dari Kaggle (cari "indonesian hoax" / "berita hoaks"), atau dataset Inggris seperti LIAR / ISOT.
+- [ ] Cek dan catat di README: jumlah data, distribusi label (seimbang atau tidak?), bahasa, kolom apa saja, sumber, lisensi _(sisa: link + lisensi Kaggle)_
+- [x] EDA: distribusi panjang teks per label, jumlah duplikat, kata yang paling sering per label
+- [x] **Cari "jejak sumber"**: string yang muncul hampir hanya di satu label (nama media, "(Reuters)", tag "[HOAKS]", pola URL, format tanggal). Ini calon kebocoran (lihat M7).
 
 ### M2: Split data
-- [ ] `src/split.py`: dedupe → stratified split 70/15/15 → simpan CSV
-- [ ] Verifikasi: distribusi label mirip di ketiga set, tidak ada teks yang sama di train & test
+- [x] `src/split.py`: dedupe → stratified split 70/15/15 → simpan CSV
+- [x] Verifikasi: distribusi label mirip di ketiga set, tidak ada teks yang sama di train & test
 
 ### M3: Preprocessing
 - [ ] `src/preprocess.py`: lowercase, buang URL, angka, tanda baca, spasi berlebih
@@ -149,3 +149,4 @@ Centang `[x]` kalau selesai. Claude Code: perbarui checklist ini saat pemilik me
 
 - **2026-10-31**: M0 selesai. Root project = folder ini (bukan subfolder `fake-news-v1/`). `.venv` Python 3.10.5; terpasang pandas 2.3.3, numpy 2.2.6, scikit-learn 1.7.2, matplotlib 3.10.9. `git init` di branch `main`, belum ada commit. Berikutnya: M1 (pilih dataset + EDA).
 - **2026-11-01**: M1 (sebagian). Dataset Komdigi (`data/raw/komdigi/`) ditolak karena isinya 100% hoaks (cuma 1 kelas); disimpan sebagai calon knowledge base RAG v2. Dataset yang dipakai: `data/raw/hoax_id/Cleaned/` (CNN, Kompas, Tempo = valid; Turnbackhoax = hoaks). Keputusan: teks hoaks = `Narasi` dipotong di pembatas `===`/`Penjelasan:` (bukan `FullText`, karena itu artikel cek fakta); hanya judul berawalan SALAH/HOAX/DISINFORMASI/dll. (buang [BENAR], [KLARIFIKASI], dll.); buang teks < 3 kata. Hasil: 27.066 baris (77,4% valid / 22,6% hoaks) → `data/processed/dataset_gabungan.csv` (belum di-dedupe). Notebook `notebooks/01_eda.ipynb` dibuat (ditulis Claude atas permintaan pemilik). Sisa M1: pemilik isi ringkasan temuan di notebook + info dataset di README.
+- **2026-11-01**: Ringkasan temuan notebook (bagian 11) + bagian Dataset README diisi Claude atas permintaan pemilik; sisa M1 = link & lisensi Kaggle di README. M2 selesai: `src/split.py` (ditulis Claude atas permintaan) → dedupe 14 baris → 27.052 baris diberi kolom `id` permanen → train 18.936 / val 4.058 / test 4.058, semua 22,6% hoaks, 0 overlap. Ada pengaman: script menolak menimpa `test.csv` kecuali `--force`. **Test set sudah dibekukan, jangan di-split ulang.** Berikutnya: M3 (preprocessing).

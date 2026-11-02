@@ -83,9 +83,9 @@ Centang `[x]` kalau selesai. Claude Code: perbarui checklist ini saat pemilik me
 - [x] Verifikasi: distribusi label mirip di ketiga set, tidak ada teks yang sama di train & test
 
 ### M3: Preprocessing
-- [ ] `src/preprocess.py`: lowercase, buang URL, angka, tanda baca, spasi berlebih
-- [ ] Putuskan: pakai stopword removal atau tidak? (Coba dua-duanya nanti di M6, jangan diasumsikan)
-- [ ] Buang token "jejak sumber" yang ditemukan di M1 (atau simpan sebagai opsi on/off untuk eksperimen M7)
+- [x] `src/preprocess.py`: lowercase, buang URL, angka, tanda baca, spasi berlebih
+- [x] Putuskan: pakai stopword removal atau tidak? (Coba dua-duanya nanti di M6, jangan diasumsikan) _(keputusan: tidak dibuang di preprocess; diuji on/off di M6 lewat `TfidfVectorizer(stop_words=...)`)_
+- [x] Buang token "jejak sumber" yang ditemukan di M1 (atau simpan sebagai opsi on/off untuk eksperimen M7) _(opsi `buang_jejak=True/False`)_
 
 ### M4: Baseline
 - [ ] **Dummy baseline** (`DummyClassifier`, tebak kelas terbanyak). Patokan minimum.
@@ -150,3 +150,4 @@ Centang `[x]` kalau selesai. Claude Code: perbarui checklist ini saat pemilik me
 - **2026-10-31**: M0 selesai. Root project = folder ini (bukan subfolder `fake-news-v1/`). `.venv` Python 3.10.5; terpasang pandas 2.3.3, numpy 2.2.6, scikit-learn 1.7.2, matplotlib 3.10.9. `git init` di branch `main`, belum ada commit. Berikutnya: M1 (pilih dataset + EDA).
 - **2026-11-01**: M1 (sebagian). Dataset Komdigi (`data/raw/komdigi/`) ditolak karena isinya 100% hoaks (cuma 1 kelas); disimpan sebagai calon knowledge base RAG v2. Dataset yang dipakai: `data/raw/hoax_id/Cleaned/` (CNN, Kompas, Tempo = valid; Turnbackhoax = hoaks). Keputusan: teks hoaks = `Narasi` dipotong di pembatas `===`/`Penjelasan:` (bukan `FullText`, karena itu artikel cek fakta); hanya judul berawalan SALAH/HOAX/DISINFORMASI/dll. (buang [BENAR], [KLARIFIKASI], dll.); buang teks < 3 kata. Hasil: 27.066 baris (77,4% valid / 22,6% hoaks) → `data/processed/dataset_gabungan.csv` (belum di-dedupe). Notebook `notebooks/01_eda.ipynb` dibuat (ditulis Claude atas permintaan pemilik). Sisa M1: pemilik isi ringkasan temuan di notebook + info dataset di README.
 - **2026-11-01**: Ringkasan temuan notebook (bagian 11) + bagian Dataset README diisi Claude atas permintaan pemilik; sisa M1 = link & lisensi Kaggle di README. M2 selesai: `src/split.py` (ditulis Claude atas permintaan) → dedupe 14 baris → 27.052 baris diberi kolom `id` permanen → train 18.936 / val 4.058 / test 4.058, semua 22,6% hoaks, 0 overlap. Ada pengaman: script menolak menimpa `test.csv` kecuali `--force`. **Test set sudah dibekukan, jangan di-split ulang.** Berikutnya: M3 (preprocessing).
+- **2026-11-02**: M3 selesai. `src/preprocess.py` (ditulis Claude atas permintaan): `bersihkan_teks(teks, buang_jejak=True)`. Jejak yang dibuang: dateline & nama media (CNN/Kompas/Tempo), ADVERTISEMENT/SCROLL TO RESUME CONTENT, `[Gambas:...]`, penanda "Baca/Lihat Juga" (judul ikut dibuang hanya kalau di baris sendiri, karena di CNN judul nempel ke kalimat berikut; versi pertama regex sempat memakan ~100 kata/artikel CNN), inisial wartawan `(abc/def)`, "Penjelasan & Fakta:", catatan terjemahan pemeriksa fakta. Pembersihan umum: lowercase, `[dot]`→`.`, URL, angka, apostrof (tanpa spasi), non-huruf, spasi. Kecepatan ~6 ms/dok → di M4+ bersihkan sekali lalu pakai ulang (aman karena stateless). Sisa shortcut yang tidak bisa dibuang: panjang teks (median valid ~300 vs hoaks ~29 kata), gaya informal, topik politik. Berikutnya: M4 (baseline).

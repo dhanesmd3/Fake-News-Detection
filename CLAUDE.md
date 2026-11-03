@@ -88,10 +88,10 @@ Centang `[x]` kalau selesai. Claude Code: perbarui checklist ini saat pemilik me
 - [x] Buang token "jejak sumber" yang ditemukan di M1 (atau simpan sebagai opsi on/off untuk eksperimen M7) _(opsi `buang_jejak=True/False`)_
 
 ### M4: Baseline
-- [ ] **Dummy baseline** (`DummyClassifier`, tebak kelas terbanyak). Patokan minimum.
-- [ ] **TF-IDF + Multinomial Naive Bayes**
-- [ ] **TF-IDF + Logistic Regression**
-- [ ] Catat semua di `reports/results.md`
+- [x] **Dummy baseline** (`DummyClassifier`, tebak kelas terbanyak). Patokan minimum.
+- [x] **TF-IDF + Multinomial Naive Bayes**
+- [x] **TF-IDF + Logistic Regression**
+- [x] Catat semua di `reports/results.md`
 
 ### M5: Evaluasi yang benar
 - [ ] Confusion matrix (simpan gambarnya)
@@ -151,3 +151,4 @@ Centang `[x]` kalau selesai. Claude Code: perbarui checklist ini saat pemilik me
 - **2026-11-01**: M1 (sebagian). Dataset Komdigi (`data/raw/komdigi/`) ditolak karena isinya 100% hoaks (cuma 1 kelas); disimpan sebagai calon knowledge base RAG v2. Dataset yang dipakai: `data/raw/hoax_id/Cleaned/` (CNN, Kompas, Tempo = valid; Turnbackhoax = hoaks). Keputusan: teks hoaks = `Narasi` dipotong di pembatas `===`/`Penjelasan:` (bukan `FullText`, karena itu artikel cek fakta); hanya judul berawalan SALAH/HOAX/DISINFORMASI/dll. (buang [BENAR], [KLARIFIKASI], dll.); buang teks < 3 kata. Hasil: 27.066 baris (77,4% valid / 22,6% hoaks) → `data/processed/dataset_gabungan.csv` (belum di-dedupe). Notebook `notebooks/01_eda.ipynb` dibuat (ditulis Claude atas permintaan pemilik). Sisa M1: pemilik isi ringkasan temuan di notebook + info dataset di README.
 - **2026-11-01**: Ringkasan temuan notebook (bagian 11) + bagian Dataset README diisi Claude atas permintaan pemilik; sisa M1 = link & lisensi Kaggle di README. M2 selesai: `src/split.py` (ditulis Claude atas permintaan) → dedupe 14 baris → 27.052 baris diberi kolom `id` permanen → train 18.936 / val 4.058 / test 4.058, semua 22,6% hoaks, 0 overlap. Ada pengaman: script menolak menimpa `test.csv` kecuali `--force`. **Test set sudah dibekukan, jangan di-split ulang.** Berikutnya: M3 (preprocessing).
 - **2026-11-02**: M3 selesai. `src/preprocess.py` (ditulis Claude atas permintaan): `bersihkan_teks(teks, buang_jejak=True)`. Jejak yang dibuang: dateline & nama media (CNN/Kompas/Tempo), ADVERTISEMENT/SCROLL TO RESUME CONTENT, `[Gambas:...]`, penanda "Baca/Lihat Juga" (judul ikut dibuang hanya kalau di baris sendiri, karena di CNN judul nempel ke kalimat berikut; versi pertama regex sempat memakan ~100 kata/artikel CNN), inisial wartawan `(abc/def)`, "Penjelasan & Fakta:", catatan terjemahan pemeriksa fakta. Pembersihan umum: lowercase, `[dot]`→`.`, URL, angka, apostrof (tanpa spasi), non-huruf, spasi. Kecepatan ~6 ms/dok → di M4+ bersihkan sekali lalu pakai ulang (aman karena stateless). Sisa shortcut yang tidak bisa dibuang: panjang teks (median valid ~300 vs hoaks ~29 kata), gaya informal, topik politik. Berikutnya: M4 (baseline).
+- **2026-11-02**: M4 selesai. `src/train.py` (ditulis Claude atas permintaan): 3 Pipeline (TF-IDF default → Dummy / MultinomialNB(alpha=1) / LogReg(C=1, max_iter=1000)), latih di train, nilai di val; `--catat` menambah baris ke `reports/results.md`. Tambahan di `preprocess.py`: `muat_split_bersih(nama, buang_jejak)` dengan cache pickle di `data/processed/cache/` (nama file memuat hash md5 preprocess.py → otomatis invalid kalau aturan berubah). Hasil val: Dummy acc 0.774; NB acc 0.852, recall 0.346, AUC 0.997; LogReg acc 0.989, F1 0.975, AUC 0.998 (acc train 0.995). NB: recall rendah merata di semua panjang teks, median proba hoaks ~0.3 → masalah ambang/kalibrasi, bukan ranking; dugaan: alpha=1 terlalu besar dibanding "massa" TF-IDF kelas hoaks (78.700 kosakata) → uji alpha kecil di M6. Skor LogReg 98,9% walau jejak sudah dibuang → dicurigai shortcut gaya/panjang (M7). Berikutnya: M5 (evaluasi: confusion matrix, ROC).

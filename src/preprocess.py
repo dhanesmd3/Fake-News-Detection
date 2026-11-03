@@ -5,18 +5,22 @@ Fungsi utama: bersihkan_teks(teks, buang_jejak=True)
 File CSV di data/processed/ TIDAK diubah. Teks asli tetap utuh, dibersihkan waktu dipakai.
 
 Catatan kecepatan: fungsi ini butuh ~6 ms per dokumen (teksnya panjang-panjang).
-Jadi di M4-M7, bersihkan SEKALI di awal lalu pakai ulang hasilnya, misalnya:
-    train["teks_bersih"] = train["teks"].apply(bersihkan_teks)
-Ini aman (nggak bocor), karena bersihkan_teks cuma mengolah 1 teks sendirian dan
-nggak "belajar" apa pun dari data lain. Beda dengan TF-IDF yang WAJIB di-fit di train saja.
+Jadi di M4-M7, pakai muat_split_bersih("train") dst.: teks dibersihkan SEKALI, lalu hasilnya
+disimpan (cache) dan dipakai ulang. Ini aman (nggak bocor), karena bersihkan_teks cuma mengolah
+1 teks sendirian dan nggak "belajar" apa pun dari data lain. Beda dengan TF-IDF yang WAJIB
+di-fit di train saja.
 
 Cara menjalankan demo + audit (pakai train.csv saja):
     python src/preprocess.py
 """
+import hashlib
 import re
 from pathlib import Path
 
 import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+PROCESSED_DIR = ROOT / "data" / "processed"
 
 # =====================================================================
 # 1. POLA "JEJAK SUMBER"
@@ -137,7 +141,37 @@ def bersihkan_teks(teks: str, buang_jejak: bool = True) -> str:
 
 
 # =====================================================================
-# 4. DEMO & AUDIT (hanya jalan kalau file ini dipanggil langsung)
+# 4. MUAT DATA + CACHE
+# =====================================================================
+def muat_split_bersih(nama: str, buang_jejak: bool = True) -> pd.DataFrame:
+    """Baca data/processed/{nama}.csv, lalu tambah kolom "teks_bersih".
+
+    nama: "train", "val", atau "test" (test HANYA boleh di M8!)
+
+    Hasil pembersihan disimpan ke data/processed/cache/ supaya run berikutnya tinggal dibaca
+    (detik), nggak perlu bersihkan ulang (menit).
+    """
+    # "Sidik jari" isi file preprocess.py ini. Kalau aturan pembersihan diubah, sidik jarinya
+    # ikut berubah, jadi nama file cache-nya beda dan cache lama otomatis nggak dipakai.
+    # (md5 = rumus yang mengubah isi file jadi kode pendek; isi beda -> kode beda)
+    sidik = hashlib.md5(Path(__file__).read_bytes()).hexdigest()[:8]
+    versi = "buang" if buang_jejak else "asli"
+    cache_path = PROCESSED_DIR / "cache" / f"{nama}_{versi}_{sidik}.pkl"
+
+    if cache_path.exists():
+        return pd.read_pickle(cache_path)
+
+    df = pd.read_csv(PROCESSED_DIR / f"{nama}.csv")
+    print(f"Membersihkan {nama}.csv ({len(df)} dok, buang_jejak={buang_jejak}). Sekali saja, tunggu ya...")
+    df["teks_bersih"] = df["teks"].apply(bersihkan_teks, buang_jejak=buang_jejak)
+
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_pickle(cache_path)  # pickle = format simpan DataFrame apa adanya, cepat dibaca lagi
+    return df
+
+
+# =====================================================================
+# 5. DEMO & AUDIT (hanya jalan kalau file ini dipanggil langsung)
 # =====================================================================
 TOKEN_JEJAK = [
     "cnn", "kompas", "tempo", "advertisement", "scroll", "resume", "gambas",
@@ -157,9 +191,8 @@ def _persen_mengandung(teks_bersih: pd.Series, label: pd.Series) -> pd.DataFrame
 
 
 def main() -> None:
-    root = Path(__file__).resolve().parents[1]
     # HANYA train.csv. Test set dibekukan, jangan dipakai untuk eksplorasi.
-    df = pd.read_csv(root / "data" / "processed" / "train.csv")
+    df = pd.read_csv(PROCESSED_DIR / "train.csv")
 
     print("=== Contoh sebelum vs sesudah ===")
     for label in [0, 1]:

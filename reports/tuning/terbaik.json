@@ -1,0 +1,15 @@
+{
+  "TF-IDF + LogReg": {
+    "clf__C": 10.0,
+    "tfidf__max_features": null,
+    "tfidf__min_df": 5,
+    "tfidf__ngram_range": [
+      1,
+      2
+    ],
+    "tfidf__stop_words": null
+  },
+  "TF-IDF + Naive Bayes": {
+    "clf__alpha": 0.03
+  }
+}

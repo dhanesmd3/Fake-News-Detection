@@ -59,6 +59,65 @@ Artinya, waktu memilih model di M6–M8, kita lihat **recall hoaks** dulu, dan p
 
 > ⚠️ Angka setinggi ini **belum tentu** berarti model paham hoaks. Lihat temuan EDA soal jejak sumber; ini diaudit di M7.
 
+## Audit "model nyontek" (M7) ⭐
+
+Model yang diaudit: LogReg terbaik dari M6 (C=10, ngram 1–2, min_df=5, tanpa stopword removal), val F1 0,986.
+
+![Koefisien LogReg](reports/figures/koefisien_logreg.png)
+
+### 1. Kata yang paling dipercaya model
+
+| Kategori | Condong hoaks (+) | Condong valid (−) | Penilaian |
+|---|---|---|---|
+| **Gaya bahasa** | yg, anda, nya, semoga, info, dr | kata, mengatakan, ia, dia, tersebut | Ciri **genre** (pesan berantai vs tulisan wartawan), bukan ciri benar/salah |
+| **Topik** | virus, pki, china, islam, allah, muslim, darah | politik, partai, pemilu, dpr, ketua, persen | **Bias topik dataset**: berita valid didominasi politik 2018–2023, hoaks banyak bertema agama, kesehatan, komunisme |
+| **Sisa tulisan pemeriksa fakta** | narasi, referensi, sumber, gambar, foto, akun facebook | – | ❌ **Jejak sumber yang lolos dari M3**, mis. "Narasi dalam gambar:", "REFERENSI:", "Sumber hasut:", "diposting akun Facebook X" |
+| **Kata fungsi** | – | itu, yang, dalam, pada, juga, dari, dan | Ciri tulisan formal & panjang |
+
+Hampir **tidak ada** kata yang menunjukkan model memahami *isi klaim*. Model belajar membedakan **unggahan medsos** dari **artikel portal berita**.
+
+⚠️ **Risiko bias:** kata *islam*, *allah*, *muslim*, *china* berbobot positif (condong hoaks). Kalau model dipakai sungguhan, konten keagamaan atau tentang etnis tertentu berisiko lebih sering ditandai hoaks, padahal penyebabnya cuma komposisi topik di dataset.
+
+### 2. Eksperimen jejak sumber & uji shortcut panjang (di val)
+
+| Model | Accuracy | Precision | Recall | F1 | ROC-AUC |
+|---|---|---|---|---|---|
+| Dummy (tebak "valid" terus) | 0,774 | 0 | 0 | 0 | 0,500 |
+| **Cuma tahu panjang teks** (1 fitur: log jumlah kata) | **0,970** | 0,976 | 0,889 | **0,930** | 0,975 |
+| LogReg terbaik, jejak **dibuang** (model utama) | 0,994 | 0,994 | 0,977 | 0,986 | 0,999 |
+| LogReg terbaik, jejak **tidak dibuang** | 0,994 | 0,995 | 0,980 | 0,987 | 0,999 |
+
+- **Membuang jejak sumber hampir tidak mengubah skor** (F1 0,987 → 0,986). Bukan karena jejaknya nggak berbahaya, tapi karena model punya **banyak shortcut lain** yang sama kuatnya. Begitu satu ditutup, dia pakai yang lain.
+- **Model yang cuma tahu panjang teks**, tanpa membaca satu kata pun, sudah dapat **akurasi 97% dan F1 0,93**. Artinya sebagian besar "kepintaran" model berasal dari fakta bahwa hoaks di dataset ini pendek (median ~24 kata) dan berita valid panjang (~300 kata). Membaca isi teks cuma menambah F1 dari 0,93 ke 0,99.
+
+### 3. Kesimpulan audit
+
+Skor 98–99% **tidak** berarti model bisa mendeteksi hoaks di dunia nyata. Model ini mendeteksi **"apakah teks ini terlihat seperti unggahan medsos atau seperti artikel berita panjang tentang politik"**. Hoaks yang ditulis rapi ala berita akan lolos (lihat error analysis), dan berita asli yang pendek/non-politik bisa dituduh hoaks.
+
+## Error analysis (M7)
+
+Semua prediksi salah model utama di val: **21 FN** (hoaks lolos) dan **5 FP** (valid dituduh hoaks). Daftar lengkap: `reports/m7/kesalahan_val.csv`. Median panjang teks yang salah ditebak: **264 kata**, padahal median hoaks di val cuma 24 kata.
+
+**Hoaks yang lolos (21 FN):** hampir semuanya hoaks yang **panjang dan bergaya formal**
+
+| Pola | Jumlah | Contoh |
+|---|---|---|
+| Opini/narasi politik panjang | 6 | skandal petinggi partai, "agen CIA" soal capres, pembelian helikopter |
+| Hoaks berformat artikel berita dari situs abal-abal (pakai dateline/nama media palsu) | 5 | "PETROKSI – Komisi Pemilihan Umum…", "RumahNKRI – …", "ASATUNEWS – …" |
+| Klaim "ilmiah" atau atas nama tokoh/pakar | 5 | "Harvard University menemukan…", surat dari "Prof. Dr. …", astronot mualaf |
+| Dokumen/surat/pengumuman resmi palsu | 3 | surat tugas KPK, surat rekomendasi partai, razia STNK |
+| **Data kotor**: teksnya ternyata tulisan pemeriksa fakta, bukan hoaksnya | 2 | "Penjelasan Lengkap: Beredar sebuah video…" (pembatas ini belum ditangkap regex M1/M3) |
+
+**Berita valid yang dituduh hoaks (5 FP):**
+
+| Pola | Jumlah | Contoh |
+|---|---|---|
+| Berita non-politik (hiburan) yang memakai kata "hoaks-ish" | 2 | rekomendasi film "…menjadi **referensi** tontonan **Anda**", lagu Coldplay |
+| Topik yang sering jadi bahan hoaks | 2 | survei penolakan vaksin Covid-19, pengumuman cuti bersama |
+| Berita pendek | 1 | kabar duka 60 kata |
+
+**Polanya konsisten dengan audit:** model gagal tepat di kasus yang **tidak cocok dengan shortcut-nya**, yaitu hoaks yang panjang & formal, dan berita yang pendek atau non-politik. Sayangnya, hoaks yang ditulis meniru berita itulah yang paling berbahaya di dunia nyata.
+
 ## Cara menjalankan
 
 ```bash

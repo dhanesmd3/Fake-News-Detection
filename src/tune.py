@@ -60,6 +60,33 @@ def label_param(nilai) -> str:
     return str(nilai)
 
 
+def pipeline_terbaik(nama_model: str = "TF-IDF + LogReg") -> tuple[Pipeline, str]:
+    """Bangun ulang pipeline dengan parameter terbaik hasil M6 (dari reports/tuning/terbaik.json).
+
+    Dipakai di M7 & M8. Pipeline yang dikembalikan BELUM dilatih.
+    Return: (pipeline, deskripsi_parameter)
+    """
+    params = json.loads((OUT_DIR / "terbaik.json").read_text(encoding="utf-8"))[nama_model]
+
+    # JSON nggak kenal tuple & nggak menyimpan daftar stopword utuh, jadi kembalikan ke bentuk aslinya:
+    # [1, 2] -> (1, 2), dan "sastrawi" -> daftar kata stopword
+    if "tfidf__ngram_range" in params:
+        params["tfidf__ngram_range"] = tuple(params["tfidf__ngram_range"])
+    if params.get("tfidf__stop_words") == "sastrawi":
+        params["tfidf__stop_words"] = stopwords_indonesia()
+
+    if "LogReg" in nama_model:
+        clf = LogisticRegression(max_iter=1000, random_state=RANDOM_STATE)
+    else:
+        clf = MultinomialNB()
+    pipe = Pipeline([("tfidf", TfidfVectorizer()), ("clf", clf)])
+    # set_params = isi parameter pakai nama "<langkah>__<parameter>", sama persis dengan format grid
+    pipe.set_params(**params)
+
+    deskripsi = "; ".join(f"{k.split('__')[1]}={label_param(v)}" for k, v in params.items())
+    return pipe, deskripsi
+
+
 def jalankan_grid(nama: str, pipeline: Pipeline, grid: dict, X, y, n_jobs: int, out_dir: Path):
     """Jalankan GridSearchCV dan simpan tabel skornya ke CSV."""
     # StratifiedKFold = bagi train jadi 5 bagian dengan proporsi hoaks:valid yang sama di tiap bagian.
